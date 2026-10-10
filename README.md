@@ -39,7 +39,7 @@
 
 ## What This Does
 
-<!-- Three or four sentences: what a user asks for, and what they get back. -->
+FitFindr is an agent that helps users find and style thrifted items. A user describes what they're looking for (e.g., "vintage graphic tee under $30, size M"), and the agent searches listings, suggests outfit combinations with items from their wardrobe, and writes a social media caption for the find. It handles empty searches gracefully by suggesting what to change in the query.
 
 
 
@@ -113,25 +113,32 @@
 **One full query**
 
 ```
-$ python app.py ask '...'
+$ python app.py ask 'vintage graphic tee under $30'
 
+  stopped: The model is currently unavailable. Please check your API key and try again later.
+  fit_card is None — it should still be None here
 ```
+
+Note: The full query requires the API key to be set in .env. Without it, the model-based tools (suggest_outfit and create_fit_card) cannot run. The search_listings tool works without the API key.
 
 **The three tools, tested one at a time**
 
 ```
 $ python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
 
+[{'id': 'lst_002', 'title': 'Y2K Baby Tee — Butterfly Print', 'description': 'Super cute early 2000s baby tee with butterfly graphic. Fitted crop length. Tag says medium but fits like a small.', 'category': 'tops', 'style_tags': ['y2k', 'vintage', 'graphic tee', 'cottagecore'], 'size': 'S/M', 'condition': 'excellent', 'price': 18.0, 'colors': ['white', 'pink', 'purple'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_006', 'title': 'Graphic Tee — 2003 Tour Bootleg Style', 'description': 'Vintage-style bootleg tee with faded graphic. Slightly boxy fit. 100% cotton, soft and worn-in.', 'category': 'tops', 'style_tags': ['graphic tee', 'vintage', 'grunge', 'streetwear', 'band tee'], 'size': 'L', 'condition': 'good', 'price': 24.0, 'colors': ['black'], 'brand': None, 'platform': 'depop'}, ...]
 ```
 
 ```
-$ python -c "from tools import suggest_outfit; ..."
+$ python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
 
+Requires API key in .env
 ```
 
 ```
-$ python -c "from tools import create_fit_card; ..."
+$ python -c "from tools import create_fit_card; from utils.data_loader import load_listings; print(create_fit_card('jeans and white sneakers', load_listings()[0]))"
 
+Requires API key in .env
 ```
 
 ---
@@ -147,15 +154,15 @@ $ python -c "from tools import create_fit_card; ..."
 
 **Moment 1**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* I asked the AI to help me design the size matching logic for search_listings, noting that simple substring matching would fail for cases like "s" in "us 9" or "l" in "xl".
+- *What came back:* The AI suggested checking for the size as a whole word with word boundaries, or checking if it appears as a distinct segment in the size string.
+- *What I changed:* I implemented a check that looks for exact match or if the search size is contained as a distinct segment (with spaces around it or at boundaries), which handles the edge cases the AI identified.
 
 **Moment 2**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* I asked the AI to review my parse_query function and suggest improvements for extracting size and price from natural language queries.
+- *What came back:* The AI pointed out that I should also remove words like "under", "below", and "less than" when extracting the price, so the description doesn't contain those leftover words.
+- *What I changed:* I added a regex substitution to remove those common price-related words from the description after extracting the price value.
 
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
