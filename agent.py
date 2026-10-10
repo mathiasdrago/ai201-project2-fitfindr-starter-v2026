@@ -13,6 +13,7 @@ Build and test your three tools in `tools.py` first. Then come here.
     python agent.py          runs both example paths below
 """
 
+import re
 import config
 import trace
 from tools import search_listings, suggest_outfit, create_fit_card
@@ -106,10 +107,84 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         than a stack trace. The import is already at the top of this file.
     """
     session = new_session(query, wardrobe)
+    iteration = 0
 
-    # TODO: delete these two lines and build the loop.
-    session["error"] = "The planning loop isn't built yet — see the TODO in agent.py."
+    try:
+        trace.check_iterations(iteration)
+        iteration += 1
+
+        # Parse the query
+        parsed = parse_query(query)
+        session["parsed"] = parsed
+
+        # Search listings
+        results = search_listings(
+            description=parsed["description"],
+            size=parsed["size"],
+            max_price=parsed["max_price"]
+        )
+        session["search_results"] = results
+
+        # Branch: if no results, stop with helpful message
+        if not results:
+            session["error"] = "No listings matched your search. Try different keywords, remove the price or size filter, or expand your search terms."
+            return session
+
+        # Select the first item
+        selected_item = results[0]
+        session["selected_item"] = selected_item
+
+        # Suggest outfit
+        outfit = suggest_outfit(selected_item, wardrobe)
+        session["outfit_suggestion"] = outfit
+
+        # Create fit card
+        fit_card = create_fit_card(outfit, selected_item)
+        session["fit_card"] = fit_card
+
+    except ModelUnavailable:
+        session["error"] = "The model is currently unavailable. Please check your API key and try again later."
+
     return session
+
+
+def parse_query(query: str) -> dict:
+    """
+    Parse a natural language query into structured parameters.
+
+    Uses regex to extract size patterns (M, L, S, XL, etc.) and price patterns ($XX).
+
+    Args:
+        query: The user's query string.
+
+    Returns:
+        A dict with keys: description (str), size (str | None), max_price (float | None)
+    """
+    # Extract size pattern (M, L, S, XL, XXL, XS, etc.)
+    size_match = re.search(r'\b(XS|S|M|L|XL|XXL|S\/M|M\/L)\b', query, re.IGNORECASE)
+    size = size_match.group(0).upper() if size_match else None
+
+    # Extract price pattern ($XX or under $XX)
+    price_match = re.search(r'\$(\d+(?:\.\d{2})?)', query)
+    max_price = float(price_match.group(1)) if price_match else None
+
+    # Remove size and price from description to get just the keywords
+    description = query
+    if size:
+        description = re.sub(r'\b' + re.escape(size) + r'\b', '', description, flags=re.IGNORECASE)
+    if price_match:
+        description = re.sub(r'\$\d+(?:\.\d{2})?', '', description)
+    if max_price is not None:
+        description = re.sub(r'\b(?:under|below|less than)\b', '', description, flags=re.IGNORECASE)
+
+    # Clean up extra spaces and common words
+    description = ' '.join(description.split())
+
+    return {
+        "description": description,
+        "size": size,
+        "max_price": max_price
+    }
 
 
 # ── running it directly ───────────────────────────────────────────────────────
