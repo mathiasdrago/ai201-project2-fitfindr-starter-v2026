@@ -24,10 +24,7 @@ data earns credit; *"80% seemed reasonable"* does not.
 Given a query that matches at least one listing, the agent completes all three
 tool calls and returns a fit card — in at least 4 of 5 tries.
 
-**Why this target:**
-<!-- Why 4 of 5 and not 5 of 5? Something about your search, probably —
-     "my search is a plain keyword match and some phrasings will miss" is a
-     real answer. -->
+**Why this target:** 4 of 5 allows for the fact that my search uses keyword matching, and some phrasings may not match even when a relevant item exists. A stricter 5 of 5 would require a more sophisticated search than I'm implementing.
 
 ---
 
@@ -36,65 +33,35 @@ tool calls and returns a fit card — in at least 4 of 5 tries.
 Given a query that matches no listings, the agent stops before calling
 `suggest_outfit` and returns a message naming what to change — 5 of 5 tries.
 
-**Why this target:**
-<!-- Why is 5 of 5 reasonable here when criterion 1 isn't? What's different
-     about this path? -->
+**Why this target:** 5 of 5 is reasonable here because detecting "no results" is deterministic — if the search returns an empty list, the branch condition is clear. Unlike the happy path where search quality affects results, the empty case is a binary check that should work every time.
 
 ---
 
-## 3. Something about state
+## 3. Session state carries the item correctly
 
-<!-- YOU WRITE THIS ONE.
+In 5 of 5 successful runs, the item title and price in the fit card match the first item returned by search_listings.
 
-     How would you know that the item your search found is the same item the
-     next tool received? Name something countable or observable.
-
-     This is the criterion people find hardest, because state failure doesn't
-     look like state failure — it looks like a tool problem. Something that
-     compares session["selected_item"] against what actually reached
-     suggest_outfit is the shape you're after. -->
-
-
-
-**Why this target:**
+**Why this target:** This verifies that the item found by search flows through the session to the later tools without being overwritten or corrupted. A mismatch would indicate the session state isn't being preserved correctly between tool calls.
 
 
 
 ---
 
-## 4. Something about the fit card
+## 4. Fit card mentions required elements
 
-<!-- YOU WRITE THIS ONE.
+In 5 of 5 successful runs, the fit card mentions the item price and platform at least once each.
 
-     The fit card calls a model, so the same input can produce different words
-     each time. That's not a bug — it's the nature of the tool. So what would
-     make it acceptable?
-
-     Think about what you'd actually be unhappy to see. A caption that never
-     mentions the price? Two different items producing the same opening
-     sentence? A card longer than a caption anyone would post? Any of those can
-     be turned into a number. -->
-
-
-
-**Why this target:**
+**Why this target:** The fit card should be a practical caption for a social post. Missing price or platform makes it incomplete for a thrifting context. Since the model output varies, this is a structural requirement that should be met consistently regardless of wording.
 
 
 
 ---
 
-## 5. Your choice
+## 5. Search respects price ceiling
 
-<!-- YOU WRITE THIS ONE TOO.
+When a query includes a price ceiling (e.g., "under $30"), all returned items are at or below that price in 5 of 5 tries.
 
-     Pick something you actually care about getting right. Speed, the empty
-     wardrobe path, what happens when the model can't be reached, whether the
-     search respects a price ceiling — anything, as long as it names a number
-     or an observable outcome. -->
-
-
-
-**Why this target:**
+**Why this target:** The price filter is a core feature of search_listings. If it doesn't work, users will see items they can't afford. This is a deterministic check on the filtering logic, not dependent on model output.
 
 
 
