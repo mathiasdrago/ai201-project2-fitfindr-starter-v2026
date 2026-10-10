@@ -59,24 +59,24 @@
 
 ### `search_listings`
 
-- **What it does:**
-- **Inputs:** <!-- name and type each: `max_price` (float), not "a price" -->
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Searches the listings data for items matching a description, optionally filtering by size and maximum price.
+- **Inputs:** description (str), size (str | None), max_price (float | None)
+- **Returns:** A list of listing dicts sorted by keyword match score, each with id, title, description, category, style_tags (list), size, condition, price (float), colors (list), brand (str or None), and platform. At most config.SEARCH_RESULT_LIMIT results.
+- **When it has nothing:** Returns an empty list ([]).
 
 ### `suggest_outfit`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Given a thrifted item and the user's wardrobe, suggests one or two outfit combinations.
+- **Inputs:** new_item (dict with listing fields), wardrobe (dict with 'items' key containing a list of wardrobe items)
+- **Returns:** A non-empty string with outfit suggestions that either names specific wardrobe pieces or provides general styling advice for an empty wardrobe.
+- **When it has nothing:** With an empty wardrobe, returns general styling advice for the item as a non-empty string rather than failing.
 
 ### `create_fit_card`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Writes a short caption someone would actually post about the find, styled like a social media post.
+- **Inputs:** outfit (str from suggest_outfit), new_item (dict with listing fields)
+- **Returns:** A two-to-four sentence caption that mentions the item, its price, and its platform once each, with specific vibe description.
+- **When it has nothing:** If outfit is empty or whitespace, returns a descriptive message about the item rather than raising an exception.
 
 ---
 
@@ -93,13 +93,13 @@
      The grader checks your code against what you claim here, so the file and
      function have to be real. -->
 
-**Branch rule:**
+**Branch rule:** If search_listings returns an empty list, put a message in session["error"] naming what the user could change (e.g., try different keywords, remove price or size filters, or expand the search) and return the session without calling suggest_outfit. Otherwise, take the first result and continue to suggest_outfit.
 
 **Where it lives:** `agent.py::run_agent`
 
-**How the query is parsed:** <!-- regex, string splitting, or asking the model — say which -->
+**How the query is parsed:** Regex pattern matching to extract size (M, L, S, XL, etc.) and price ($XX pattern) from the query string.
 
-**What moves through the session:** <!-- which fields, in what order -->
+**What moves through the session:** query → parsed (description, size, max_price) → search_results → selected_item → outfit_suggestion → fit_card
 
 ---
 
