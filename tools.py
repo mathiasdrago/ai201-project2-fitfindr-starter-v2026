@@ -78,8 +78,43 @@ def search_listings(
     Test it from a terminal before you move on:
         python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
     """
-    # TODO: replace this with your implementation
-    return []
+    listings = load_listings()
+    keywords = description.lower().split()
+
+    scored = []
+    for listing in listings:
+        # Filter by max_price
+        if max_price is not None and listing["price"] > max_price:
+            continue
+
+        # Filter by size - match if size string appears as a whole word or exact match
+        if size is not None:
+            listing_size = listing["size"].lower()
+            search_size = size.lower()
+            # Check for exact match or if search size is contained as a distinct segment
+            if not (search_size == listing_size or
+                    f" {search_size} " in f" {listing_size} " or
+                    listing_size.startswith(search_size + " ") or
+                    listing_size.endswith(" " + search_size)):
+                continue
+
+        # Score by keyword overlap
+        score = 0
+        searchable_text = f"{listing['title']} {listing['description']} {' '.join(listing['style_tags'])}".lower()
+
+        for keyword in keywords:
+            if keyword in searchable_text:
+                score += 1
+
+        if score > 0:
+            scored.append((score, listing))
+
+    # Sort by score descending
+    scored.sort(key=lambda x: x[0], reverse=True)
+
+    # Return only the listing dicts, limited by SEARCH_RESULT_LIMIT
+    results = [item for score, item in scored[:config.SEARCH_RESULT_LIMIT]]
+    return results
 
 
 # ── Tool 2: suggest_outfit ────────────────────────────────────────────────────
@@ -112,8 +147,31 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
     Test it from a terminal before you move on:
         python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
     """
-    # TODO: replace this with your implementation
-    return ""
+    item_desc = f"{new_item['title']} - {new_item['description']}"
+
+    if not wardrobe.get("items"):
+        prompt = f"""Suggest 1-2 outfit ideas for this thrifted item:
+
+{item_desc}
+
+Give general styling advice - what to pair it with, what vibes it works for, and how to style it. Keep it practical and specific."""
+    else:
+        wardrobe_desc = "\n".join([
+            f"- {item['name']} ({item['category']}) - {item.get('notes', '')}"
+            for item in wardrobe["items"]
+        ])
+
+        prompt = f"""I'm considering this thrifted item:
+
+{item_desc}
+
+Here's what I already own in my wardrobe:
+{wardrobe_desc}
+
+Suggest 1-2 specific outfit combinations that include the new item with pieces I already own. Name the specific pieces from my wardrobe that you're pairing it with."""
+
+    response = generate(prompt)
+    return response
 
 
 # ── Tool 3: create_fit_card ───────────────────────────────────────────────────
@@ -152,5 +210,19 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
     Test it from a terminal before you move on:
         python -c "from tools import create_fit_card; from utils.data_loader import load_listings; print(create_fit_card('jeans and white sneakers', load_listings()[0]))"
     """
-    # TODO: replace this with your implementation
-    return ""
+    if not outfit or not outfit.strip():
+        return f"Found this {new_item['title']} for ${new_item['price']} on {new_item['platform']} - a great thrift find!"
+
+    prompt = f"""Write a 2-4 sentence social media caption for this thrift find:
+
+Item: {new_item['title']}
+Price: ${new_item['price']}
+Platform: {new_item['platform']}
+Description: {new_item['description']}
+
+Outfit idea: {outfit}
+
+Make it sound like a real post - casual and enthusiastic. Mention the price and platform once each. Be specific about the vibe."""
+
+    response = generate(prompt)
+    return response
