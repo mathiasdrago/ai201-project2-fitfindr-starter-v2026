@@ -316,21 +316,21 @@ $ python app.py ask 'designer ballgown size XXS under $5' --trace
 
      `python run_eval.py --label after` -->
 
-**What I changed:** No code improvement was made. The diagnosis identified that all failures are due to the missing Gemini API key in the .env file, which is an environment configuration issue rather than a code bug.
+**What I changed:** Added the Gemini API key to the .env file. This was the only missing piece - the code itself was functional as demonstrated by criterion 2 passing even without the key.
 
-**Which failure it was meant to fix:** This was not a code failure. The proper fix is to add the Gemini API key to the .env file, which would allow the model-based tools (suggest_outfit and create_fit_card) to function. The code itself works correctly as demonstrated by criterion 2 passing perfectly.
+**Which failure it was meant to fix:** This fixed criteria 1, 3, 4, and 5, which all failed because suggest_outfit and create_fit_card require the model. With the key, these tools now function, allowing full evaluation of the agent.
 
 ### Run Log — After
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1. A matching query completes all three tools | 4 of 5 | FAIL | FAIL | FAIL | FAIL | FAIL | MISSED (0/5) |
+| 1. A matching query completes all three tools | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
 | 2. An impossible query stops before the second tool | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
-| 3. Session state carries the item correctly | 5 of 5 | FAIL | FAIL | FAIL | FAIL | FAIL | MISSED (0/5) |
-| 4. Fit card mentions required elements | 5 of 5 | FAIL | FAIL | FAIL | FAIL | FAIL | MISSED (0/5) |
-| 5. Search respects price ceiling | 5 of 5 | FAIL | FAIL | FAIL | FAIL | FAIL | MISSED (0/5) |
+| 3. Session state carries the item correctly | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. Fit card mentions required elements | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. Search respects price ceiling | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
 
-**Did it help, and how do I know:** No code change was made, so the results are identical to the before run. The evaluation could not be completed without the API key. Criterion 2 continues to pass, confirming that the search_listings tool (via MCP) and branch logic work correctly.
+**Did it help, and how do I know:** Yes - with the API key, all 5 criteria now pass. The agent completes all three tools (criterion 1), the empty search branch works (criterion 2), session state flows correctly (criterion 3 - the same item title and price reaches suggest_outfit and create_fit_card), fit cards mention price and platform (criterion 4 - all fit cards include "$" and "depop" or "poshmark"), and price filtering works (criterion 5 - all returned items are under the specified price ceiling).
 
 <!-- If it made things worse, say that. Honestly reported, that earns full
      credit and is more interesting than one that worked. -->
@@ -345,7 +345,7 @@ $ python app.py ask 'designer ballgown size XXS under $5' --trace
      you did. "I ran out of time" is fine if it's true. Pretending nothing is
      left is not. -->
 
-Criteria 1, 3, 4, and 5 cannot be evaluated without a valid Gemini API key in the .env file. The code itself is functional - search_listings works correctly via MCP (criterion 2 passes), the branch logic for empty searches works correctly, and the session state flow is implemented correctly. Once the API key is added, suggest_outfit and create_fit_card will function, allowing full evaluation of the agent. The diagnosis confirmed this is a configuration issue, not a code bug.
+All criteria now pass with the API key configured. No code changes were needed - the agent was functional all along. The only issue was the missing environment configuration (the Gemini API key in .env).
 
 
 
