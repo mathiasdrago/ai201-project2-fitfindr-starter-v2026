@@ -15,7 +15,7 @@ Build and test your three tools in `tools.py` first. Then come here.
 
 import re
 import config
-import trace
+from trace import start_trace, step, get_trace, check_iterations
 from tools import suggest_outfit, create_fit_card
 from mcp_client import call_tool
 from generate import ModelUnavailable
@@ -111,12 +111,13 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     iteration = 0
 
     try:
-        trace.check_iterations(iteration)
+        check_iterations(iteration)
         iteration += 1
 
         # Parse the query
         parsed = parse_query(query)
         session["parsed"] = parsed
+        step("parse_query", inputs=query, returned=parsed)
 
         # Search listings through MCP
         results = call_tool("search_listings", {
@@ -125,26 +126,32 @@ def run_agent(query: str, wardrobe: dict) -> dict:
             "max_price": parsed["max_price"]
         })
         session["search_results"] = results
+        step("search_listings (via MCP)", inputs=parsed, returned=results)
 
         # Branch: if no results, stop with helpful message
         if not results:
             session["error"] = "No listings matched your search. Try different keywords, remove the price or size filter, or expand your search terms."
+            step("branch: empty search", note="stopping before suggest_outfit")
             return session
 
         # Select the first item
         selected_item = results[0]
         session["selected_item"] = selected_item
+        step("select_item", returned=selected_item)
 
         # Suggest outfit
         outfit = suggest_outfit(selected_item, wardrobe)
         session["outfit_suggestion"] = outfit
+        step("suggest_outfit", inputs={"wardrobe_items": len(wardrobe.get("items", []))}, returned=outfit)
 
         # Create fit card
         fit_card = create_fit_card(outfit, selected_item)
         session["fit_card"] = fit_card
+        step("create_fit_card", returned=fit_card)
 
     except ModelUnavailable:
         session["error"] = "The model is currently unavailable. Please check your API key and try again later."
+        step("error: ModelUnavailable", note="handled with user message")
 
     return session
 
